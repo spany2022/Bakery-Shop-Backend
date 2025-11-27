@@ -51,9 +51,15 @@ app.use('/api/addresses', addressRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/rewards', rewardRoutes);
 
-// Health check route
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', message: 'Server is running' });
+// // Health check route
+// app.get('/health', (req, res) => {
+//   res.status(200).json({ status: 'OK', message: 'Server is running' });
+// });
+
+
+app.get("/health", (req, res) => {
+  console.log("🔥 HEALTH endpoint requested by:", req.headers.origin || req.ip);
+  res.status(200).json({ status: "OK", message: "Server is running" });
 });
 
 // Error handling middleware (must be last)

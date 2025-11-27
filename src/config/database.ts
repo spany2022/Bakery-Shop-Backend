@@ -3,12 +3,8 @@ import mongoose from 'mongoose';
 const connectDB = async (): Promise<void> => {
   try {
 
-    const uri =  "mongodb+srv://sandesh2002pany_db_user:bakeryShopPassword@cluster0.ossg2pk.mongodb.net/bakery_db";
-    // const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bakery_delight');
-    // const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bakery_delight');
-
-    
-    // console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/bakery_delight';
+  
     console.log("📌 Using MongoDB URI →", uri.includes("mongodb+srv") ? "ATLAS CLOUD 😎" : "LOCALHOST 🏠");
 
     const conn = await mongoose.connect(uri);
