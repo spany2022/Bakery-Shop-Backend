@@ -72,7 +72,7 @@
 //   if (!this.isModified('password') || !this.password) {
 //     return next();
 //   }
-  
+
 //   const salt = await bcrypt.genSalt(10);
 //   this.password = await bcrypt.hash(this.password, salt);
 //   next();
@@ -86,24 +86,18 @@
 
 // export default mongoose.model<IUser>('User', userSchema);
 
-
-
-
-
-
-
 // models/User.ts
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema } from "mongoose";
 
 export interface IUser extends Document {
-  name: string;
-  email: string;
   phone: string;
+  name: string;
   avatar: string;
-  role: 'user' | 'admin';
+  email: string;
+  role: "user" | "admin";
   isVerified: boolean;
   rewardPoints: number;
-  tier: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
+  tier: "Bronze" | "Silver" | "Gold" | "Platinum";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -112,31 +106,33 @@ const userSchema = new Schema<IUser>(
   {
     phone: {
       type: String,
-      required: [true, 'Please provide a phone number'],
+      required: true,
       unique: true,
       trim: true,
     },
     name: {
       type: String,
-      default: '',
+      default: "",
       trim: true,
     },
     email: {
       type: String,
-      default: '',
+      unique: true,
       lowercase: true,
       trim: true,
-      // You can add unique + validation later if you want email to be strict
-      // match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email']
+      match: [/^\S+@\S+\.\S+$/, "Invalid email format"],
+      default: function () {
+        return `user_${this.phone}@temp.com`;
+      },
     },
     avatar: {
       type: String,
-      default: '👤',
+      default: "👤",
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
-      default: 'user',
+      enum: ["user", "admin"],
+      default: "user",
     },
     isVerified: {
       type: Boolean,
@@ -148,15 +144,11 @@ const userSchema = new Schema<IUser>(
     },
     tier: {
       type: String,
-      enum: ['Bronze', 'Silver', 'Gold', 'Platinum'],
-      default: 'Bronze',
+      enum: ["Bronze", "Silver", "Gold", "Platinum"],
+      default: "Bronze",
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// No password, no hashing, no comparePassword
-
-export default mongoose.model<IUser>('User', userSchema);
+export default mongoose.model<IUser>("User", userSchema);

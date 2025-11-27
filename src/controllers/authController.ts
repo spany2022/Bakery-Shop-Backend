@@ -232,6 +232,7 @@ import { AuthRequest } from '../middleware/auth';
 import User from '../models/User';
 import { generateToken } from '../utils/jwt';
 import { v4 as uuidv4 } from 'uuid';
+import Otp from '../models/Otp';
 
 // Temporary in-memory store for demo
 // Structure: otpId -> { phone, otp }
@@ -241,29 +242,25 @@ const otpStore = new Map<string, { phone: string; otp: string }>();
 // @route POST /api/auth/send-otp
 // @access Public
 export const sendOTP = async (req: Request, res: Response) => {
-  try {
-    const { phone } = req.body;
+  const { phone } = req.body;
 
-    if (!phone) {
-      return res.status(400).json({ success: false, message: "Phone number required" });
-    }
+  const otp = '123456'; // Testing static
+  const otpId = uuidv4();
 
-    const otp = '123456'// random 6-digit OTP
-    const otpId = uuidv4(); // secure ID
+  await Otp.create({
+    otpId,
+    phone,
+    otp,
+    expiresAt: new Date(Date.now() + 2 * 60 * 1000) // 2 min expiry
+  });
 
-    otpStore.set(otpId, { phone, otp });
+  console.log(`OTP stored in DB: ${otp}, otpId: ${otpId}`);
 
-    console.log(`📩 OTP sent to ${phone} -> OTP: ${otp}, otpId: ${otpId}`);
-
-    return res.status(200).json({
-      success: true,
-      message: "OTP sent successfully",
-      data: { otpId, otp  } // ✔ only otpId returned
-    });
-
-  } catch (error: any) {
-    res.status(400).json({ success: false, message: error.message });
-  }
+  res.status(200).json({
+    success: true,
+    message: "OTP sent successfully",
+    data: { otpId, otp } // return OTP only for testing
+  });
 };
 
 
@@ -271,64 +268,34 @@ export const sendOTP = async (req: Request, res: Response) => {
 // @route POST /api/auth/verify-otp
 // @access Public
 export const verifyOTP = async (req: Request, res: Response) => {
-  
-  try {
-    const { otpId, otp } = req.body;
-    console.log("VERIFY OTP BODY:", req.body);
-console.log("Received otpId:", otpId);
-console.log("Received otp:", otp);
-    
+  const { otpId, otp } = req.body;
 
-    if (!otpId || !otp) {
-      return res.status(400).json({ success: false, message: "otpId and otp required" });
-    }
+  const otpRecord = await Otp.findOne({ otpId });
 
-    const data = otpStore.get(otpId);
-    if (!data || data.otp !== otp) {
-      return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
-    }
-
-    const phone = data.phone;
-    otpStore.delete(otpId); // Remove OTP after use (one-time use)
-    
-    let user = await User.findOne({ phone });
-    let isNewUser = false;
-
-    if (!user) {
-      user = await User.create({
-        phone,
-        name: '',
-        email: '',
-        isVerified: true
-      });
-      isNewUser = true;
-    }
-
-    const token = generateToken(user._id.toString());
-
-    res.status(200).json({
-      success: true,
-      data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          avatar: user.avatar,
-          role: user.role,
-          rewardPoints: user.rewardPoints,
-          tier: user.tier
-        },
-        token,
-        isNewUser
-      }
-    });
-
-  } catch (error: any) {
-    res.status(400).json({ success: false, message: error.message });
+  if (!otpRecord || otpRecord.otp !== otp) {
+    return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
   }
-};
 
+  const phone = otpRecord.phone;
+  await Otp.deleteOne({ otpId }); // remove after use
+
+  let user = await User.findOne({ phone });
+if (!user) {
+  user = await User.create({
+    phone,
+    name: "", // empty → user must complete profile later
+    email: `user_${phone}@temp.com`, // unique placeholder to prevent duplicate constraint
+    isVerified: true
+  });
+}
+
+  const token = generateToken(user._id.toString());
+
+  res.status(200).json({
+    success: true,
+    data: { user, token, isNewUser: !user.name }
+  });
+};
 
 // @desc  Get logged in user
 export const getMe = async (req: AuthRequest, res: Response) => {
